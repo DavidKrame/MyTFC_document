@@ -1,0 +1,69 @@
+\section{Contexte}
+La communication est un facteur clé dans l'émergence d'une société. Ce fait se démontre par le développement assez important survenant après que l'homme ait développé les méthodes de traitement, manipulation et interprétation des signaux.
+
+Il existe plusieurs types de signaux, mais nous nous focaliserons dans ce travail, sur les signaux sonores. L'onde sonore résulte d'une perturbation du milieu de propagation considéré.\\
+En effet, le milieu de propagation\footnote{Nous traiterons dans ce document, uniquement de la propagation du son dans les fluides et particulièrement dans les gaz; que nous supposerons évidemment \emph{parfaits}.} est complètement connu si en chacun de ses points et à chaque instant on a la valeur de la vitesse, la pression et celle de la densité. Quantitativement, cela revient à définir les fonctions donnant ces grandeurs. Sous l'effet de la perturbation des dites grandeurs (avec l'\emph{approximation acoustique}\cite{Acoust}, ces perturbations sont très négligeables par rapport à la valeur au repos de la grandeur perturbée), on constate une variation qui respecte l'équation des ondes. Cela traduit le fait que le son est une onde, ce qui veut dire que son comportement est bel et bien analogue à tout type d'onde.
+
+De ce fait, il subira tous les traitements réservés aux grandeurs ondulatoires. Il peut donc subir la diffraction, la réfraction, l'interférence,... exactement comme tout type d'onde.
+On peut aussi en étudier le phénomène de réflexion et cela nous amène immédiatement à l'étude de l'écho lui associé, c'est ce qui va particulièrement nous préoccuper dans ce travail.% \textcolor{red}{Ajouter ici des éléments référencés, expliquant le phénomène d'écho pour le son.}
+
+L'écho acoustique en tant que phénomène physique, n'est en aucune manière problématique ni dérangeant. Il peut néanmoins s'avérer indésirable lors d'une communication par exemple.
+
+C'est ainsi qu'il est parfois impératif de trouver une solution à la nuisance apportée par des échos acoustiques\footnote{L'utilisation abusive du terme \emph{écho acoustique} en lieu et place d'\emph{écho sonore} n'est pas à considérer avec toute la rigueur}
+ non désirés.
+\section{Problématique}
+Il arrive que, suite à un mauvais couplage du microphone avec le haut-parleur, nous puissions entendre notre voix résonner via l'ordinateur portable et les hauts-parleurs de la salle de réunion, via les écouteurs lors d'une vidéo-conférence, lors d'un appel téléphonique(surtout en mode mains libres)...\\
+Le phénomène peut ne pas durer assez longtemps mais il devient très vite gênant surtout quand il est perceptible.\\
+Toutefois, même quand l'écho n'est pas perceptible, il rend moins bonnes l'optimisation de la mémoire ainsi que la compression des données s'il s'avère par exemple nécessaire de stocker le contenu des communications \cite{bellanger2012theorie}.
+
+La qualité du son lors d'une communication est très importante, surtout en application civile, et l'optimisation de l'espace de stockage en cas de besoin ne peut être que bénéfique. Cela fait à ce qu'il soit impérieux de focaliser notre recherche sur les moyens efficaces et rentables au point de vu économique, pour remédier au dit problème. 
+
+De cette ambition naissent quelques questions auxquelles nous auront répondu à l'issu de ce travail, à savoir:
+\begin{enumerate}
+\item Le filtrage peut-il remédier complètement au problème de la présence indésirée d'écho sonore?
+\item Un filtrage analogique peut-il suffire sans problème?
+\item Sans mémorisation dynamique du signal, est-il possible de mieux annuler l'écho?
+\end{enumerate}
+\section{Formulation des hypothèses}
+Nous estimons qu'un filtre résoudrait bel et bien le problème de la présence indésirée de l'écho acoustique dans les signaux sonores.
+
+Nous croyons également qu'un filtre purement analogique serait moins efficace pour réaliser de façon satisfaisante l'annulation de l'écho d'un signal sonore.
+
+C'est pour cette raison que nous anticipons qu'un filtre mixte, allié à une mémorisation dynamique et optimisée du signal réaliserait amplement l'extraction du signal de base sans écho.
+\section{Objectifs du travail}
+\subsection{Objectif général}
+Notre travail consiste à concevoir un filtre annulateur d'écho acoustique. 
+\subsection{Objectifs spécifiques}
+Pour arriver à mettre conceptuellement sur pieds un filtre annulateur d'écho adapté, nous comptons:
+\begin{enumerate}
+\item Etudier la génération d'écho acoustique et circonscrire le problème;
+\item Choisir l'approche adaptée pour modéliser la réponse d'une enceinte à l'onde sonore;
+\item Évaluer la possibilité d'un traitement par filtrage adaptatif;
+\item Etudier et adapter le filtrage numérique de l'écho;
+\item Concevoir, étudier et tester les algorithmes d'annulation d'écho;
+\item Proposer les éléments et paradigmes adaptés pour une perspective d'implantation du filtre.
+\end{enumerate}
+\section{Choix et intérêt du sujet}
+Le filtrage des signaux est assez puissant pour résoudre tout problème consistant à séparer le signal utile d'avec le bruit. Nous avons donc songé à appliquer ce type de traitement au son juste en ce qui concerne l'annulation de l'écho, sans nous préoccuper des autres signaux indésirables qui brouilleraient le signal utile.%\textcolor{red}{Précisions et compléments...}
+
+La conception d'algorithmes de filtrage du son serait rendue plus efficace sur un grand nombre des points si le problème de l'écho se trouvait préalablement résolu. Ainsi, ce sont d'autres parasites qui seraient pris en compte et l'écho deviendrait secondaire.
+
+Sur le plan social, il est évidemment important d'augmenter le confort lors d'une communication par exemple en annulant l'écho quand cela s'avère nécessaire mais également, d'optimiser l'utilisation d'un espace mémoire en cas de stockage des données; ce qui pourrait mener également à des bénéfices économiques.
+
+\section{Méthodologie de recherche et délimitation du travail}
+Nous procéderons par analyse et expérimentation (notamment grâce au logiciel \textbf{Matlab}) avec comme techniques, l'analyse du contenu et la documentation.
+
+Notre travail se focalise uniquement sur l'onde sonore, principalement sur le filtrage ainsi que l'annulation de l'écho généré\footnote{On ne traitera par exemple pas de l'écho électrique dû aux caractéristiques des éléments intervenant dans le traitement et la transmission du signal.}.\\
+Nous réaliserons donc le filtrage dudit signal dans un contexte plus général (indépendamment de l'enceinte, considérant juste la modélisation de la réponse de l'enceinte, ou du lieu en général, à l'onde sonore).
+
+Cela nous conduira à élaborer un filtre adapté avec optimisation des apports respectifs des parties numériques et analogiques.
+
+Il faut également noter que le milieu de propagation considéré dans le présent travail est le gaz parfait. Aussi, nonobstant le fait que certains résultats trouvés soient applicables pour tout type de fluide, nous ne les appliquons qu'au cas des gaz parfaits. 
+\section{Subdivision du travail}
+Excepté l'introduction et la conclusion générales, nous avons dans ce travail:
+\begin{itemize}
+\item Au \emph{Chapitre 1}, \textit{Les généralités sur le traitement du signal}, nous nous focalisons sur les aspects du traitement des signaux qui seront utiles à notre projet (particulièrement le traitement du signal audio).\\
+\item Au \emph{Chapitre 2}, \textit{Etude théorique du filtrage du son}, nous traitons particulièrement du filtrage de l'onde sonore en vu d'annuler un écho éventuel.
+Nous y parlons également des différentes méthodes d'annulation d'écho et particulièrement des algorithmes existant.
+\item Au \emph{Chapitre 3}, \textit{Conception d'un filtre mixte adapté}, nous concevons, étape par étape, le filtre recherché en nous basant sur les algorithmes du chapitre précédent, tout en les complétant et en les améliorant en cas de besoin. Nous y donnons également des lumières utiles pour l'embarcation du système.
+\end{itemize}

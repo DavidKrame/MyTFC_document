@@ -1,0 +1,337 @@
+\section{Introduction partielle}
+Le traitement du signal sonore doit être minutieusement réalisé car les effets d'un mauvais traitement sont facilement perceptibles. Un traitement particulier, le filtrage, avec comme objectif d'annuler l'écho éventuel du signal sonore, fait l'objet de ce chapitre. Nous avons principalement opté pour un traitement numérique du signal à cause des avantages que cela procure (allant de la facilité de traitement à la facilité de réplique des manipulations effectuées en passant par la grande disponibilité des concepts élaborés du domaine).\\
+C'est ainsi que nous présentons, en premier lieu, divers algorithmes de filtrage conçus principalement avec comme objectif d'aboutir à une possibilité d'annuler l'écho d'un signal sonore.\\
+En second lieu, nous abordons un type de transformation numérique particulier, la transformée en nombres de Fermat, qui constitue un substitut valable à la transformation de Fourier discrète dans des situations où il est impérieux de réduire la complexité de calcul des algorithmes élaborés.\\
+En troisième et dernier lieu, nous y présentons un paradigme très essentiel pour une réduction encore plus grande de la complexité des algorithmes élaborés pour le traitement des signaux. Il s'agit du traitement par bloc des séquences numériques.\\
+\section{Quelques algorithmes de filtrage adaptatif}
+Le filtrage adaptatif a été introduit à la fin du premier chapitre. En gros, ça consiste à réaliser le filtrage avec un filtre numérique qui change et s'adapte à l'enceinte selon un critère bien défini (un critère de minimisation du carré de l'erreur d'estimation par exemple). Pour cela nous avons parlé du filtre de Wiener qui, bien que n'étant utilisable qu'en cas des signaux stationnaires, nous permet d'aborder de manière claire et succincte le filtrage adaptatif.\\
+Ces algorithmes ont donc pour raison d'être l'approximation du filtre optimal de Wiener en cas des signaux non stationnaires. Il s'agit du \emph{filtrage adaptatif proprement-dit}.
+\subsection{Algorithme du gradient déterministe}
+L'équation de Wiener-Hopf vue à la fin du précédent chapitre permet de retrouver le filtre optimal en résolvant un système de $ p $ équations à $ p $ inconnues. Cet algorithme permet de résoudre le système de manière itérative. Cela est fait en deux étapes:
+\begin{itemize}
+\item Choix du vecteur $ W_{0} $ ($ W $ initial).
+\item Obtention, à partir de $ W_{k} $ , de $ W_{k+1} $ par incrémentation de $ W_{k} $ dans la direction opposée au gradient de la fonction moyenne des erreurs $ \Gamma(W) $ introduite en \ref{FonctionCoût}.
+\end{itemize}
+Ainsi on aura\cite{Esiee}:
+\begin{eqnarray}
+W_{k+1} = W_{k} - \frac{1}{2}\lambda\nabla [\Gamma(W)]
+\end{eqnarray}
+Et pourtant on sait que, selon les notations adoptées, et suite à l'égalité \ref{BrouillonHopf} on a:
+\begin{eqnarray}
+\overrightarrow{grad}\Gamma(W) \equiv \nabla [\Gamma(W)] = \frac{d[\Gamma(W)]}{dW} = -2R_{sy}+2R_{ss}W_{k}
+\end{eqnarray}
+Par conséquent, l'\emph{algorithme du gradient déterministe} est donné par\cite{ThAlaedine}:
+\begin{eqnarray}\label{AlgoGradDéterministe}
+W_{k+1} = W_{k} + \lambda( R_{sy} - R_{ss}.W_{k})
+\end{eqnarray}
+La stabilité de cet algorithme est contrôlée par le \emph{pas d'adaptation} $ \lambda $, elle dépend également de la matrice d'autocorrélation du vecteur d'entrée\cite{ThAlaedine}.\\
+En effet, si on nomme $ E_{k} $ l'écart entre $ W_{k} $ et $ W_{opt} $ après $ k $ itérations, on aura:
+\begin{eqnarray}
+E_{k} = W_{k} - W_{opt}
+\end{eqnarray}
+or selon l'équation de Wiener-Hopf,
+\begin{eqnarray}
+R_{ss}W_{opt} = R_{sy}
+\end{eqnarray}
+Et selon l'algorithme du gradient déterministe on aura:
+\begin{eqnarray}
+W_{k+1} &=& W_{k} + \lambda .( R_{ss}.W_{opt} - R_{ss}.W_{k})\\
+		&=& W_{k} + \lambda R_{ss}.( W_{opt} - W_{k})\\
+		&=& W_{k} - \lambda R_{ss}.E_{k}
+\end{eqnarray}
+De ce qui précède on tire que
+\begin{eqnarray}
+E_{k+1} = W_{k+1} - W_{opt} = E_{k} - \lambda R_{ss}.E_{k}
+\end{eqnarray}
+Ce qui montre de manière évidente de quelle façon la convergence de l'algorithme dépend du pas d'adaptation et de la matrice d'autocorrélation du vecteur d'entrée.\\
+\emph{La convergence de l'algorithme} est assurée par la contrainte\cite{Esiee}:
+\begin{eqnarray}
+0 \lneq \lambda \lneq \frac{2}{\lambda_{pro_{max}}}
+\end{eqnarray}
+Avec $ \lambda_{pro} $ représentant une quelconque valeur propre de la matrice d'autocorrélation du signal d'entrée et $ \lambda_{pro_{max}} $ la plus grande valeur propre de cette matrice.\\
+Notons que pour des faibles valeurs de $ \lambda $ (pas d'adaptation), le temps de convergence lui est inversement proportionnel. Le choix de $ \lambda $ est trop délicat et sa fixité ne garantit pas une vitesse de convergence optimale de l'algorithme. Par conséquent, il est nécessaire d'y trouver une solution.
+\subsection{Algorithme du gradient stochastique(LMS) \cite{ThAlaedine}}
+Cet algorithme dit des moindres carrés ou LMS (Least Mean Square) consiste à minimiser l'erreur quadratique moyenne. C'est-à-dire en considérant son gradient au lieu de celui de la moyenne des carrés des erreurs (que nous avons nommé $ \Gamma(W) $). Cela résout approximativement le problème évoqué au paragraphe précédent pour l'algorithme du gradient déterministe, problème de faible vitesse de convergence pour des très faibles valeurs du pas d'adaptation. Au fait, c'est plus adapté en pratique car on a très rarement $ \nabla [\Gamma(W)] $.\\ Ainsi, comme $ \nabla [\varepsilon^{2}(n)] = \nabla[\varepsilon_{k}^{2}] = 2\varepsilon_{k}.\dfrac{\partial \varepsilon_{k}}{\partial W} = -2.\varepsilon_{k}.S_{k} $\footnote{$ S_{k} $ représente le vecteur $ S(n) $ à la $ k^{ieme} $ itération et $ \varepsilon_{k} $ l'erreur(c'est un scalaire) $ \varepsilon(n) $ après le même nombre d'itérations.}, on aura l'algorithme LMS donné par:
+\begin{eqnarray}\label{AlgoLMS}
+W_{k+1} = W_{k} - \frac{1}{2}\lambda\nabla [\varepsilon^{2}(n)] = W_{k} + \lambda S_{k}\varepsilon_{k}
+\end{eqnarray}
+L'adaptation qui assure la convergence en moyenne quadratique la plus rapide est donnée par\footnote{Avec l'hypothèse d'un \emph{bruit blanc} en entrée}:
+\begin{eqnarray}
+\lambda_{opt} = \frac{2}{p.\sigma^{2}(s)}
+\end{eqnarray}
+Avec $ \sigma^{2}(s) $ la \emph{variance du signal d'entrée}.\\
+On remarque que la convergence de l'algorithme LMS dépend de la statistique du signal d'entrée. Pour les signaux non stationnaires, il est difficile de suivre les variations du signal d'entrée avec l'adaptation du filtre par l'algorithme LMS et cela donne une convergence lente. D'où l'algorithme des moindres carrés récursif.
+\subsection{Algorithme des Moindres Carrés Récursif \cite{ThAlaedine, Esiee}}
+Cet algorithme, le \emph{Recursive Least Squares \textbf{RLS}}, permet de suivre les signaux non stationnaires tout en ayant une vitesse de convergence convenable. Ici, au lieu de minimiser un critère statistique établi sur l'erreur commise en estimant un signal, on minimise, à chaque itération la somme des carrés des erreurs commises depuis l'instant initial. Dans ce cas, $ \Gamma(W) $ serait donné par\\ $ \Gamma(W) = \dfrac{1}{k}\sum_{n = 0}^{k}\varepsilon^{2}(n) $ mais vu que cela n'affecte pas le critère de minimisation, on prendra plutôt:
+\begin{eqnarray}
+\Gamma(W) = \sum_{n = 0}^{k}\varepsilon^{2}(n)
+\end{eqnarray}
+La réponse $ W $ du filtre adaptatif \emph{est donc fonction des échantillons disponibles et non d'une moyenne statistique générale}. Cela est très capital et constitue le noyau de cet algorithme. Par analogie avec le filtre de Wiener on aura les relations\footnote{C'est logique car les développements sont \emph{formellement} identiques}:
+\begin{eqnarray}
+R_{ss_{k}}W_{k} = R_{sy_{k}}
+\end{eqnarray}
+Avec $ R_{ss_{k}} = \sum_{n=0}^{k}S_{n}.S_{n}^{T} $ et $ R_{sy_{k}} = \sum_{n=0}^{k}S_{n}.y(n) $.\\
+La réponse impulsionnelle du filtre sera donc modifiée à chaque itération. Pour limiter le nombre des calculs, l'équation à utiliser, et qui constitue l'algorithme RLS, est la suivante:
+\begin{eqnarray}\label{AlgoRLS}
+W_{k+1} = W_{k} + R^{-1}_{ss_{k}}S_{k}\varepsilon_{k}
+\end{eqnarray}
+Et dans cette formule, le calcul de $ R^{-1}_{ss_{k}} $ se fait par:
+\begin{eqnarray}
+R^{-1}_{ss_{k}} = \frac{1}{\delta}[R^{-1}_{ss_{k-1}} - \frac{R^{-1}_{ss_{k-1}}.S_{k}^{T}.R^{-1}_{ss_{k-1}}}{\delta + S_{k}^{T}.R^{-1}_{ss_{k-1}}.S_{k}}]
+\end{eqnarray}
+Avec $ R_{ss_{0}} = \dfrac{1}{\delta}.I_{p}$ avec \emph{$ I_{p} $ matrice unité de dimension $ p\times p $ },  $ \delta \in\, \rbrack 0,1 \lbrack $ et $ W_{0} \equiv $ \emph{vecteur nul de dimension $ p $ }.\\
+Cet algorithme converge plus vite que le LMS mais est plus difficile à mettre au point. Un palliatif à cette difficulté de mise en application est l'algorithme dit NLMS.
+\subsection{Algorithme LMS Normalisé (NLMS) \cite{ThAlaedine, Fmy}}
+Le \emph{Normalized Least Mean Square} dit NLMS pallie à la complexité du RLS et, de manière directe et plus globale, à l'inadaptation du coefficient d'adaptation de l'algorithme LMS (Problème soulevé à la fin du paragraphe sur l'algorithme LMS). Cet algorithme consiste à normaliser le coefficient d'adaptation $ \lambda $ du LMS en prenant en compte l'énergie du signal d'entrée, ce qui réduit au minimum l'effet de l'influence de la variation de la puissance du signal. Cela rend la vitesse de convergence plus ou moins uniforme en passant d'une itération à l'autre. Donc on aura la même formule d'itération que celle donnée pour l'algorithme LMS par l'équation \ref{AlgoLMS}, à la différence près que le coefficient d'adaptation est ainsi normalisé:
+\begin{eqnarray}
+\lambda_{k} = \frac{\lambda}{S_{k}^{T}.S_{k} + \beta}
+\end{eqnarray}
+Par conséquent, l'algorithme NLMS est donné par l'équation:
+\begin{eqnarray}\label{AlgoNLMS}
+W_{k+1} = W_{k} + \frac{\lambda}{S_{k}^{T}.S_{k} + \beta}.S_{k}\varepsilon_{k}
+\end{eqnarray}
+$ \beta $ est un facteur permettant de suivre rapidement les variations de l'énergie dans le signal d'entrée.\\
+La convergence de cet algorithme est garantie si $ \lambda_{k} \in\, \rbrack 0,\dfrac{2}{\lambda_{pro_{max}}} \lbrack $. L'intérêt de cet algorithme par rapport au LMS est qu'il est indépendant à la variance du signal d'entrée. Il faudra toutefois noter qu'ici aussi il y a dépendance de la convergence de l'algorithme à la statistique du signal d'entrée car la distribution des valeurs propres de la matrice d'autocorrélation du signal n'est pas modifiée. Pour les signaux stationnaires (le \emph{bruit blanc}  par exemple) ou non-stationnaires (signal de \emph{parole} par exemple), le NLMS apporte une amélioration significative du taux de convergence suite à la normalisation. En ce qui concerne la mise en œuvre, cet algorithme est plus complexe que le LMS mais en pratique il fait partie des plus simples et plus efficaces algorithmes d'adaptation.
+\subsection{Algorithme Proportionné Normalisé (PNLMS)\cite{ThAlaedine}} \label{MatrGk}
+Cet algorithme, le PNLMS, spécialement adapté à l'annulation d'écho, fait l'adaptation avec un taux de convergence variable. Il a plus d'opérations que le NLMS mais converge plus vite; il découle du NLMS en remplaçant le $ \lambda_{k} $ par:
+\begin{eqnarray}
+\lambda_{k} = \frac{\lambda G_{k}}{S_{k}^{T}.G_{k}.S_{k} + \beta}
+\end{eqnarray}\newpage
+Avec $ G_{k} = diag[g_{k}(0),\cdots ,g_{k}(p-1)] $ qui est une matrice diagonale de type $ p\times p $.\\
+Et chaque fois, $ g_{k}(n) = \dfrac{\gamma_{k}(n)}{\dfrac{1}{p}\sum_{m=0}^{p-1}\gamma_{k}(m)} $ où $ \gamma_{k}(n) = \max\{\rho \nu_{k}, |w_{k}(n)|\} $ , $ n \in \, \{0,\cdots ,p-1\} $ et $ \nu_{k} = \max\{\delta,|w_{k}(0)|, \cdots ,|w_{k}(p-1)|\} $. Les termes $ \rho $ et $ \delta $ valent respectivement $ \dfrac{5}{p} $ et $ 10^{-2} $ . Donc l'algorithme PNLMS est donné par:
+\begin{eqnarray}\label{AlgoPNLMS}
+W_{k+1} = W_{k} + \frac{\lambda G_{k}}{S_{k}^{T}.G_{k}.S_{k} + \beta} \cdot S_{k}\varepsilon_{k}
+\end{eqnarray}
+Néanmoins, sous certaines conditions dont la \emph{dispersivité de la réponse du filtre adaptatif}, le PNLMS devient moins rapide que le NLMS. La solution à ce problème est la combinaison de ces deux algorithmes. D'où l'algorithme nommé \textbf{PNLMS++}.
+\subsection{Algorithme PNLMS++ \cite{ThAlaedine}}
+Cet algorithme est moins sensible aux variations de la réponses impulsionnelle du filtre. Il consiste à combiner les deux précédent comme suit:
+\begin{itemize}
+\item[•] Pour les itérations de numéro impair ($ k $ impair), utilisation du PNLMS.
+\item[•] Pour les itérations paires, on utilise le NLMS. 
+\end{itemize}
+Puis en fin de compte on mélange les résultats pour retrouver le filtre optimal.\\
+ \\
+L'algorithme ainsi défini est celui que nous utiliserons. Toutefois, il subira un certain nombre de modifications pour pouvoir devenir plus manipulable et plus optimal. Ces manipulations seront effectuées en faisant en sorte que les calculs puissent s'effectuer sur un processeur de traitement numérique des signaux sans oublier de prendre en compte le coût, la rapidité et la minimisation d'erreurs. Ainsi, nous devons chercher comment réaliser les opérations voulues en utilisant un \emph{processeur à virgule fixe}, pour ne pas avoir à gérer les erreurs d'arrondissement introduites par une manipulation maladroite du \emph{processeur à virgule flottante}, tout en réduisant le coût d'achat du matériel (le premier processeur étant moins cher que le second). Pour cela, une transformation tout à fait particulière nous sera utile; il faudra juste qu'elle ait les mêmes propriétés qu'une transformation de Fourier (surtout en ce qui concerne la convolution) et qu'elle rende les calculs (le traitement) plus optimisé. On le réalise grâce à la transformation qui fait l'objet de la section qui suit.
+\section{Transformée en nombres entiers (NNT) \cite{ThAlaedine}}
+La transformée en nombres entiers a la même forme que la transformée de Fourier discrète mais la supplante en ce sens que la partie imaginaire n'existe plus dans cette nouvelle transformation. La racine primitive considérée dans cette dernière (l'exponentiel complexe) étant remplacée par la racine $ M^{ieme} $ de l'unité dans le corps de Galois\cite{Galois}\footnote{Chaque fois le corps de Galois d'ordre $ q $ sera noté $ GF(q) $ selon la  notation anglaise standard.} considéré.\\
+Soit $ \alpha $ cette racine. Nous avons donc que
+\begin{eqnarray}
+\langle\alpha^{M} = 1\rangle_{q}
+\end{eqnarray}
+Avec $ \langle \cdot \rangle_{q} $ signifiant que le calcul est fait \emph{modulo q}, c'est-à-dire dans un corps de Galois d'ordre $ q $. La formule précédente est celle qui sera chaque fois utilisée pour retrouver la racine primitive $ \alpha $ dès que $ M $ et $ q $ sont choisis. La transformée en nombres entiers de chaque terme $ x_{n} $ d'une séquence de longueur $ M $ est alors donnée par:
+\begin{eqnarray}\label{TransNombEntiers}
+X_{k} = \langle\sum_{n=0}^{M-1}x_{n}\alpha^{nk}\rangle_{q}
+\end{eqnarray}
+Si la longueur de la transformée $ M $ et l'ordre $ q $ du corps fini (sachant que tout corps fini est corps de Galois)\cite{GaloisD} $ GF(q) $ sont premiers entre eux, il existe alors $ ( M^{-1} ) $ \footnote{Des algorithmes de calcul rapide de l'inverse d'un nombre dans un corps fini existent et seront présentés dès que nécessaire.} tel que $ \langle M.M^{-1} \equiv 1\rangle_{q} $ (ceci signifie que $ M.M^{-1} $ est congru à $ 1 $ modulo $ q $) et là l'inverse de la transformée existe si $ M\vert(q-1) $ (ça veut dire que $ M $ divise $ q-1 $), elle est donnée par:
+\begin{eqnarray}\label{TransInvNombEntiers}
+x_{n} = \langle M^{-1}\sum_{k=0}^{M-1}X_{k}\alpha^{-nk}\rangle_{q}
+\end{eqnarray}
+La transformée en nombres entiers n'existe pas toujours; les conditions de son existence sont les suivantes:\newpage
+\begin{itemize}
+\item[•] On doit avoir que $ pgcd(\alpha,q) = pgcd(M,q) = 1 $ ce qui implique que $ \langle\alpha^{M} = 1\rangle_{q} $ (existence de la racine primitive $ \alpha $).
+\item[•] Si $ q $ est premier, il faut nécessairement que $ M\vert(q-1) $.\\ Sinon $ q=\prod_{i=0}^{k}p_{i}^{m_{i}} $ et $ M\vert pgcd(p_{i}-1,p_{j}-1)$  $ \forall(i,j)\in\{1,2,...\}^{2}$. Avec $ i \neq j $ et $ q=\prod_{i=0}^{k}p_{i}^{m_{i}} $ représentant exactement la décomposition de $ q $ en facteurs premiers.
+\item[•] Il faut que $ pgcd((\alpha^{i}-1),q) = 1 $ si $ i $ est un diviseur de $ M $, $ \forall i\in\{1,2,...,M-1\} $
+\end{itemize}
+\subsection{Choix des paramètres de la transformation et Transformée en nombres de Fermat (FNT)}\label{NbrFermat}
+De même que pour la transformée de Fourier discrète, la transformée en nombres entiers demanderait un ordre de $ M^{2} $ multiplications et $ M(M-1) $ additions. L'opération la plus complexe ici est évidemment la multiplication par des puissances de la racine unité $ \alpha $. De cela découle qu'il est impérieux de faire un choix judicieux de cette racine pour réduire la charge de calcul des processeurs à utiliser (il est ainsi plus malin de choisir $ \alpha $ puissance de 2 pour remplacer toutes les multiplications par des décalages de bit). Le choix de l'ordre $ q $ du corps de Galois dans lequel on choisit de travailler est aussi important pour une programmation plus optimale. Il est plus avantageux de prendre un ordre $ q $ égal à \emph{un nombre de Fermat}. C'est-à-dire un nombre de la forme $ 2^{b} + 1 $ avec $ b $ une puissance de 2 car cela rend l'algorithme très optimal. On parle de la \textbf{\emph{transformation en nombres de Fermat}}.
+Il s'agit d'une transformée en nombres entiers dans un corps d'ordre égal à un nombre de Fermat (il faut noter en passant que, seuls les 5 premiers nombres de Fermat sont premiers). Ainsi on a que $ q = 2^{2^{t}} + 1 $ avec $ t\in\mathbb{N} $. Cette transformée est celle que nous utiliserons vu qu'elle rend nos algorithmes plus optimisés.
+\subsection{Transformation en nombres de Fermat et arithmétique binaire}\label{MetALPHA}
+Nous devons analyser la transformation sous cet angle (sous l'angle de l'arithmétique binaire) car cela permet de rester dans notre contexte vu que nos calculs seront exécutés par un processeur numérique fonctionnant sous le même principe.\\
+Une FNT (Fermat Number Transform) de longueur quelconque $ M = 2^{t+1} $ a juste $ \frac{M}{2}\log_{2}M $ multiplications et $ M\log_{2}M $ additions. Nous voyons à quel point il est intéressant de travailler dans un corps de Galois ayant un ordre $ q $ égal à un nombre de Fermat $ F_{t} $. Le terme générateur $ \alpha $ étant aussi essentiel à la réduction de la complexité de calcul, le choix d'un $ \alpha $ différent d'une racine primitive (contrairement aux indications du début) mais égal à une puissance de $ 2 $ est intéressant en arithmétique binaire pour réduire la charge de calcul en cas de multiplication. Les longueurs possibles sont alors données par $ M = 2^{t+1-i} $ et $ \langle\alpha = 2^{2^{i}}\rangle_{F_{t}} $ avec évidemment $ (i,t)\in\mathbb{N}^{2} $ tel que $ 0\leqslant i<t $.La longueur de séquence étant égale à une puissance de 2, $ \langle M^{-1} = -2^{2^{t}-1-(t-i)}\rangle_{F_{t}} $ car en effet,
+\begin{eqnarray}
+\begin{aligned}
+\langle F_{t}-1 = 2^{2^{t}} & \equiv  -1\rangle_{F_{t}}\\
+\langle 2^{2^{t}}\cdot 2^{-(t-i+1)}  \equiv & -2^{-(t-i+1)}\rangle_{F_{t}}\\
+\langle M^{-1} = 2^{-(t+1-i)} & \equiv  -2^{2^{t}-1-(t-i)}\rangle_{F_{t}}
+\end{aligned}
+\end{eqnarray}
+D'où les formules de transformation seront données, à la lumière des relations \ref{TransNombEntiers} et \ref{TransInvNombEntiers}, par:
+\begin{eqnarray}
+\begin{aligned}
+X_{k} &= \langle\sum_{n=0}^{2^{t+1-i}-1}x_{n}\cdot 2^{\langle 2^{i}nk\rangle_{M}}\rangle_{F_{t}}\\
+x_{n} &= \langle -2^{2^{t}-1-(t-i)}\sum_{k=0}^{2^{t+1-i}-1}X_{k}\cdot 2^{\langle -2^{i}nk\rangle_{M}}\rangle_{F_{t}}
+\end{aligned}
+\end{eqnarray}
+On peut doubler la longueur des séquences tout en conservant un $ \alpha $ puissance de $ 2 $. Pour cela il suffit de poser que $ i = -1 $. Ainsi la racine $ \alpha $ est solution de la relation de congruence $ \langle\alpha^{2} = 2\rangle_{F_{t}} $. Donc,
+\begin{align*}
+\alpha^{2} &= \langle 2 = (-1)\cdot 2\cdot (-1) = -2\cdot (-1)\rangle_{F_{t}}\\
+&= \langle -2\cdot 2^{2^{t}} = 2^{2^{t-1}}(1-1-2\cdot 2^{2^{t-1}})\rangle_{F_{t}}\\
+&= \langle(2^{2^{t-2}})^{2}((2^{2^{t-1}})^{2}-2\cdot 2^{2^{t-1}} + 1^{2})\rangle_{F_{t}}\\
+&= \langle(2^{2^{t-2}}(2^{2^{t-1}}-1))^{2}\rangle_{F_{t}}
+\end{align*}
+Par conséquent, $ \alpha\equiv\sqrt{2}$ a un sens et existe dans le corps de Galois $ GF(q)\equiv GF(F_{t}) $ si et seulement si $ t\geq 2 $ car du développement précédent on tire clairement que:
+\begin{eqnarray}
+\langle\alpha\equiv\sqrt{2} = {2^{2^{t-2}}} \cdot (2^{2^{t-1}}-1)\rangle_{F_{t}}
+\end{eqnarray}
+ \\
+Donc, $ (\sqrt{2}^{n}) = \left\{\begin{array}{ll}
+\langle 2^{\frac{n}{2}}\rangle_{F_{t}} & \mbox{ pour $ n $ pair}\\
+\langle 2^{\frac{n-1}{2}}\cdot 2^{2^{t-2}}(2^{2^{t-1}}-1)\rangle_{F_{t}} & \mbox{ sinon }
+\end{array}\right. $.\\
+ \\
+Comme \emph{cette transformation admet que la transformée du produit de convolution de deux séquences est égale au produit simple(terme à terme) des transformées des séquences convoluées}, elle requiert $ M\log_{2}M $ opérations simples (décalage de bit, additions) et \emph{aucune multiplication}. Cela est génial vu que comparativement, la transformée de Fourier discrète requiert, hormis les opérations simples, un nombre de multiplications complexes de l'ordre de $ \frac{M}{2}\log_{2}\frac{M}{2} $.
+\subsection{Version rapide de la FNT}\label{Butterfly}
+De même qu'il existe une version rapide de la transformée de Fourier (la FFT comme dit au premier chapitre), il en existe aussi une pour la transformée en nombres de Fermat. Le principe est le même et \emph{c'est la même chose du point de vu formel}. Il consiste à diviser la séquence en 2 séquences plus petites, ce qui réduit la complexité des calculs. L'implantation de cet algorithme sur un processeur de calcul porte le nom d'\emph{implantation Butterfly}.\\
+Une transformée en nombres de Fermat de dimension $ M = 2^{n} $ avec $ 0 \leq n\leq b = 2^{t} $ peut être calculée en utilisant le principe de l'algorithme FFT de la manière suivante:
+\begin{eqnarray}
+\begin{aligned}
+\langle X_{k} = \sum_{n=0}^{M-1}x_{n}\alpha^{nk} = \sum_{n=0}^{\frac{M}{2}-1}x_{2n}\alpha^{2nk} + \sum_{n=0}^{\frac{M}{2}-1}x_{2n+1}\alpha^{(2n+1)k}\rangle_{F_{t}}\\
+\langle X_{k} = \sum_{n=0}^{\frac{M}{2}-1}x_{2n}\alpha^{2nk} + \alpha^{k}\sum_{n=0}^{\frac{M}{2}-1}x_{2n+1}\alpha^{2nk} = G_{k}+\alpha^{k}H_{k}\rangle_{F_{t}}
+\end{aligned}
+\end{eqnarray}
+Avec évidemment $ G_{k} $ et $ H_{k} $ des vecteurs représentant respectivement les transformées en nombres de Fermat des séquences $ \{x_{2n}\}_{n=0}^{\frac{M}{2}-1} $ et $ \{x_{2n+1}\}_{n=0}^{\frac{M}{2}-1} $ de longueur $ \frac{M}{2} $.\\
+Comme $ \langle\alpha^{M} = 1\rangle_{F_{t}} \Rightarrow \langle\alpha^{k+\frac{M}{2}} = -\alpha^{k}\rangle_{F_{t}} $ car $ \langle\alpha^{M} = 1 = (-1)^{2} = (\alpha^{\frac{M}{2}})^{2}\rangle_{F_{t}} $.\\
+ \\
+En fin de compte,$ \left\{\begin{array}{lcl}
+X_{k} &=& G_{k} + \alpha^{k}H_{k} \\
+X_{k+\frac{M}{2}} &=& G_{k} - \alpha^{k}H_{k}
+\end{array}\right. $   $ k\in [0,\frac{M}{2}-1]\subset\mathbb{N} $.\\
+ \\
+Ce découpage de la séquence en 2 parties égales peut être repété pour décomposer la transformée de longueur $ M = 2^{b} $ en $ \{4,8,\cdots ,\dfrac{M}{2} $ parties. Toute FNT peut ainsi être calculée grâce à $ \log_{2}(2^{b}) = b $ décompositions. Comme $ \frac{Mb}{2} $ transformées de longueur de séquence $ M = 2 $.\\
+%\textbf{IMAGE DE LA STRUCTURE EN PAPILLON}\\
+%Cet algorithme mis en figure montre clairement qu'i
+Il faudra à chaque étape 2 opérations simples et une multiplication. D'où le total exigera $ M\log_{2}M $ additions et $ \frac{M}{2}\log_{2}M $ multiplications pour réaliser une FNT.
+\subsection{La convolution rapide}
+Le calcul de convolution de deux séquences de $ M $ échantillons exige l'application de $ 3 $ transformées en nombre entiers de longueur $ 2M $, les séquences étant étendues par des zéros. Soit deux séquences de longueur $ M $ chacune donnée par $ \{x(n)\}_{n=0}^{M-1} $ et $ \{h(n)\}_{n=0}^{M-1} $, la convolution de ces deux séquences par le principe de la convolution rapide consiste à procéder de la manière suivante:
+\begin{algorithm}[Convolution rapide par NNT]\label{AlgoConvRapide}
+\begin{itemize}
+\item[•]Formation de deux séquences $ x_{1} $ et $ x_{2} $ à partir de la séquence $ \{x(n)\}_{n=0}^{M-1} $ par:\\
+$ \left\{\begin{array}{lcl}
+x_{1}(n) &=& \left\{\begin{array}{lr}
+x(n) & 0\leq n<\frac{M}{2}\\
+0 & \frac{M}{2}\leq n<M
+\end{array}\right.\\
+x_{2}(n) &=& \left\{\begin{array}{lr}
+0 & M\leq n<\frac{M}{2}\\
+x(n) & \frac{M}{2}\leq n<M
+\end{array}\right.
+\end{array}\right. $
+\item[•]Définir $ h_{1} $ et $ h_{2} $ de manière identique.
+\item[•]Calculer les transformées en nombres de Fermat des séquences ainsi construites. Soient $ X_{1} $ , $ X_{2} $ , $ H_{1} $ et $ H_{2} $ les transformées correspondant respectivement aux séquences construites ci-haut. Ne pas oublier que:
+\begin{eqnarray}
+X(k) = \langle X_{1}(k) + X_{2}(k)\rangle_{F_{t}} \mbox{    et idem pour $ H(k) $}
+\end{eqnarray}
+\item[•]Former trois nouvelles séquences notées $ \{U\} $, $ \{V\} $ et $ \{W\} $ de la manière suivante:\\
+$ \left\{\begin{array}{lcl}
+U(k) &=& \langle H(k)\bullet X(k)\rangle_{F_{t}}\\
+V(k) &=& \langle H_{1}(k)\bullet X_{1}(k)\rangle_{F_{t}}\\
+W(k) &=& \langle H_{2}(k)\bullet X_{2}(k)\rangle_{F_{t}}
+\end{array}\right. $ avec le $ \bullet $ représentant une multiplication terme à terme des séquences.
+\item[•]Calculer les transformées inverses de ces dernières séquences. Elles seront notées: $ u(n) $, $ v(n) $ et $ w(n) $ respectivement.
+\item[•]Soit $ y = x\ast h $ le résultat de la convolution des séquences $ x $ et $ h $. On aura enfin que:\\
+$y(n) = \left\{\begin{array}{ll}
+v(n) & \mbox{pour $ 0\leq n<\frac{M}{2} $}\\
+\langle u(n) - w(n)\rangle_{F_{t}} & \mbox{pour   $ \frac{M}{2}\leq n<M $}\\
+\langle u(n-M) - v(n-M)\rangle_{F_{t}} & \mbox{pour   $ M\leq n<\frac{3M}{2} $}\\
+w(n) & \mbox{pour   $ \frac{3M}{2}\leq n<2M $}
+\end{array}\right. $
+\end{itemize}
+\end{algorithm}
+A la différence du calcul de convolution usuel qui demande dans le pire des cas 3 transformées en nombres entiers de longueur $ 2M $, cet algorithme exige plutôt $ 7 $ transformées de longueur $ M $ et cela est plus avantageux en terme de minimisation du nombre d'opérations complexes (les multiplications).
+\subsection{Multiplication optimale des matrices \cite{Matrices}}
+Le produit de deux matrices représente le plus souvent une charge de calcul assez importante. Une méthode qui a des performances nettement supérieures à celles de la méthode usuelle, surtout pour des matrices de grande dimension, existe et consiste à transformer la multiplication des matrices en un produit de convolution (convolution des séquences composées des coefficients des deux matrices). Ce dernier pouvant finalement être rapidement et facilement calculé grâce aux algorithmes de calcul rapide du produit de convolution dont celui présenté à la section précédente, après une FNT calculée suivant ce qui est montré à la section \ref{Butterfly}.
+\begin{algorithm}[Multiplication rapide des matrices]\label{MultiplicationMatrices}
+Soient $ A(a_{ij}) $ et $ B(b_{ij}) $ deux matrices carrées de dimension $ M $. Leur produit $ C(c_{ij}) $ peut s'écrire sous forme polynomiale $ R(x) = P(x)Q(x) $, les coefficients de $ P $ et $ Q $ étant trouvés respectivement par:\\
+ \\
+$ \left\{\begin{array}{lcl}
+p_{i+jM} &=& a_{ij}\\
+q_{M(M-1-i+jM)} &=& b_{ij}
+\end{array}\right. $  \\
+ \\
+Avec $ 0\leq i,j<M $ et tous les coefficients non définis égaux à $ 0 $.\\
+Et par multiplication simple des polynômes ou par convolution\footnote{Une multiplication des polynômes est équivalente à un produit de convolution des séquences formées par les coefficients des dits polynômes rangés selon le degré croissant.} des séquences qui sont constituées respectivement par les coefficients de $ P $ et $ Q $ on trouve $ R(x) $. Les coefficients du produit de $ A $ et $ B $ sont alors donnés par:\\
+ \\
+$ c_{ij} = r_{M^{2}-M+i+jM^{2}} $
+\end{algorithm}
+Une convolution faite après FNT tout en appliquant les méthodes rapides et optimales mentionnées dans les parties précédentes permet de réaliser le produit des matrices avec moins de $ M^{3} $ opérations complexes (multiplications) comme c'est le cas pour une multiplication par la méthode classique. Cette manière de faire sera très utile pour la suite car, avec ce qui est introduit à la section suivante on se rend copte qu'on aura plus besoin de manipuler régulièrement des matrices et des produits de convolution.
+\section{Traitement par bloc des algorithmes d'annulation d'écho}
+\subsection{Introduction}
+L'annulation d'écho sera réalisée par un filtre adaptatif. Le filtre à utiliser se doit d'être le plus rapide (vitesse de convergence) et le moins complexe (complexité de calcul) possible. Le filtre \emph{PNLMS++} tel que présenté précédemment est le candidat idéal à ces deux exigences.\\
+Nous n'allons plus nous intéresser à l'adaptation des coefficients du filtre à chaque itération comme dans les paragraphes précédents car cela représente une charge assez importante en terme de calcul et de mémoire.L'algorithme sera plutôt modifié de manière à l'optimiser au maximum tout en conservant les traitements appliqués aux données (séquences). Pour cela, l'adaptation sera effectuée plutôt chaque après $ N $ termes de la séquence considérée.\\
+Il faudra néanmoins noter que, bien que cette méthode est très avantageuse quant à la réduction du nombre de multiplications, elle a le défaut d'accroître considérablement le nombre d'opérations simples (les additions et les décalages de bit). Pour palier à cet inconvénient et rendre les algorithmes encore plus efficaces, on applique une méthode dite du \emph{sliding généralisé} qui permet d'éviter plus particulièrement certaines redondances dans les calculs, rendant ainsi les algorithmes plus optimisés (cela pourra être pris en compte lors de l'implantation des algorithmes et non au cours de cette présentation théorique).\\
+Prenant toujours référence à la section sur les filtres adaptatifs, nous devons définir certains concepts vu que les quantités qui étaient auparavant des scalaires à chaque adaptation deviennent alors des vecteurs. Etant donné que l'adaptation survient chaque après $ N $ éléments de la séquence considérée, tous les blocs (sauf éventuellement le dernier) contiennent $ N $ termes pris dans l'intervalle $ [kN,kN+N-1] $ avec $ k $ désignant le numéro du bloc (de l'itération). Les termes de bloc sont donc les suivants:\\
+$ y_{k} = $\(\begin{pmatrix}
+y(kN) & y(kN+1) & \cdots & y(kN+N-1)
+\end{pmatrix}\)$ ^{T} $\\
+$ y_{w_{k}} = $\(\begin{pmatrix}
+(y_{w}(kN) & y_{w}(kN+1) & \cdots & y_{w}(kN+N-1)
+\end{pmatrix}\)$^{T} $\\
+$ \varepsilon_{k} = y_{k} - y_{w_{k}} = $\(\begin{pmatrix}
+\varepsilon(kN) & \varepsilon(kN+1) & \cdots & \varepsilon(kN+N-1)
+\end{pmatrix}\)$^{T} $\\
+$ S_{k} = $ \(\begin{pmatrix}
+s(kN) & s(kN+1) & \cdots & s(kN+N-1)
+\end{pmatrix}\)$^{T} $.\\
+ \\
+La définition que nous venons de donner pour $ S_{k} $ est plus valable si on se base sur une compréhension brute du concept des blocs. Néanmoins, une manière plus pratique de la définir est de poser qu'elle vaut : $ S_{k} = $\(\begin{pmatrix}
+s(kN-p+1) & s(kN-p+2) & \cdots & s(kN+N-1)
+\end{pmatrix}\)$ ^{T} $ , ainsi on prend également en compte la longueur du filtre (pour notre cas, le filtre est de longueur $ p $).\\
+La sortie qui est obtenue par convolution du signal en entrée $ S(n) $ par la réponse impulsionnelle du filtre sera finalement écrite de manière globale sur le bloc comme suit:\\
+ \\
+$ y_{w_{k}} = $ $  $\(\begin{pmatrix}
+s(kN) & s(kN-1) & \cdots & s(kN-p+1)\\
+s(kN+1) & s(kN) & \cdots & s(kN-p+2)\\
+\vdots & \vdots & \ddots\\
+s(kN+N-1) & s(kN+N-2) & \cdots & s(kN+N-p)
+\end{pmatrix}\)\(\begin{pmatrix}
+w_{k}(0)\\
+w_{k}(1)\\
+\vdots\\
+w_{k}(p-1)\\
+\end{pmatrix}\)
+\\
+ \\
+       $ = \mathfrak{R}_{k}W_{k} $\\
+       \\
+Avec $ \mathfrak{R}_{k} $ une \emph{matrice de Toeplitz} de taille $ p\times N $ et $ p $ la longueur du filtre comme mentionné au premier chapitre. Tout en considérant qu'un terme noté $ w_{k}(n) $ correspond, à la lumière de la notation du premier chapitre, au coefficient $ w_{n} $ du filtre à la $ k^{ieme} $ itération.
+\subsection{Algorithmes proprement-dits \cite{ThAlaedine}}
+Pour le cas le plus simple, \emph{algorithme LMS par blocs} noté \emph{BLMS} (Bloc Least Mean Squares), l'erreur quadratique calculée sur un bloc de données sera donnée par: $ \varepsilon_{k}^{T}\varepsilon_{k} $     au lieu de     $ \varepsilon^{2}(n) $ comme c'était le cas auparavant. Ce qui est évident vu que c'est une généralisation de la fonction \emph{élévation au carré}.
+Sachant que $ S(j) $ répond à sa définition donnée à la fin du premier chapitre, les coefficients du filtre seront mis à jour grâce à:
+\begin{align*}
+W_{k+1} &=W_{k}-\frac{1}{2}\lambda\nabla(\varepsilon_{k}^{T}\varepsilon_{k})\\
+&=W_{k}-\frac{1}{2}\lambda\frac{\partial(\varepsilon_{k}^{T}\varepsilon_{k})}{\partial W_{k}}\\
+&=W_{k}-\frac{1}{2}\lambda\frac{\partial(\sum_{j=kN}^{(k+1)N-1}(\varepsilon(j))^{2})}{\partial W_{k}}\\
+&=W_{k}-\frac{1}{2}\lambda\frac{\partial(\sum_{j=kN}^{(k+1)N-1}(y(j)-S(j)^{T}W_{k})^{2})}{\partial W_{k}}\\
+&=W_{k}-\frac{1}{2}\lambda\{-2\sum_{j=kN}^{(k+1)N-1}(y(j)-S(j)^{T}W_{k})(S(j)^{T})\}\\
+&=W_{k}-\frac{1}{2}\lambda\{-2\sum_{j=kN}^{(k+1)N-1}S(j)\varepsilon(j)\}\\
+&=W_{k}+\lambda\mathfrak{R}_{k}^{T}\varepsilon_{k}\\
+\end{align*}
+Et la formule ainsi obtenue peut être réécrite sous la forme d'une convolution car:
+\begin{align*}
+\mathfrak{R}_{k}^{T}\varepsilon_{k}&=\sum_{j=kN}^{(k+1)N-1}S(j)\varepsilon(j)\}\\
+\Rightarrow (\mathfrak{R}_{k}^{T}\varepsilon_{k})_{i} &=\sum_{j=kN}^{(k+1)N-1}\varepsilon(j)s(j-i)=\varepsilon(i)\ast s(-i)
+\end{align*}
+Avec  $ 0\leq i\leq (p-1) $ pour ne pas dépasser la longueur du filtre et $ \ast $ le produit de convolution discrète.\\
+Les éléments du vecteur d'erreur $ \varepsilon_{k} $ de longueur $ N $, les $ \varepsilon(kN+m) $ avec $ 0\leq m\leq N-1 $ peuvent également être exprimés sous forme d'une convolution car on sait que:
+\begin{align*}
+\varepsilon(kN+m) &= y(kN+m)-y_{w_{k}}(kN+m)\\
+&=y(kN+m)-\sum_{i=0}^{p-1}w_{k}(i)s(kN+m-i)\\
+&=y(kN+m)-w_{k}(m)\ast s_{k}(m)
+\end{align*}
+Avec $ s_{k}(m) $ désignant le terme numéro $ m $ dans le bloc numéro $ k $ du signal d'entrée.\\
+Dans ce qui précède il faut remarquer que normalement la convolution a été arrêtée à la longueur du filtre ($ p $). Les deux manipulations qui précèdent seront perpétuées partout où cela sera possible, pour transformer les expressions sous la forme de produit de convolution afin d'appliquer toutes les belles propriétés de la convolution discrète, en terme de réduction du temps de calcul principalement, par utilisation de la transformée rapide (en nombres de Fermat pour notre cas).\\
+Grâce au même raisonnement, nous pouvons obtenir les formules de mise à jour des coefficients du filtre pour tous les autres algorithmes. L'algorithme qui nous intéresse étant le \emph{PNLMS++}, à cause de ses propriétés présentées au premier chapitre, la version par blocs (\emph{le BPNLMS++}) sera donnée par:
+\begin{itemize}
+\item[•] Pour la partie paire (correspondant au \emph{BNLMS}),
+\begin{eqnarray}
+W_{k+1}=W_{k}+\frac{\lambda}{R_{ss}(k)+\beta}(\varepsilon_{k}\ast S_{-k})
+\label{BPNLMS++2}
+\end{eqnarray}
+Avec $ R_{ss}(k) $ la fonction d'autocorrélation du signal, soit $ S_{k}\ast S_{-k} $.
+\item[•] Pour la partie impaire (correspondant au \emph{BPNLMS}),
+\begin{eqnarray}
+W_{k+1}=W_{k}+\frac{\lambda G_{k}}{G_{k}R_{ss}(k)+\beta}(\varepsilon_{k}\ast S_{-k})
+\label{BPNLMS++1}
+\end{eqnarray} 
+\end{itemize}
+Avec $ S_{-k} = $\(\begin{pmatrix}
+s(kN+N-1) & s(kN+N-2) & \cdots & s(kN-p+1)
+\end{pmatrix}\)$ ^{T} $\\
+ \\
+Dans la mise en oeuvre pratique de ces algorithmes, tous les éléments seront adaptés de manière à avoir des formes correctes (par ajout des zéros aux vecteurs le nécessitant et suppression de l'erreur ainsi introduite, à la fin des calculs).
+\paragraph{}
+\emph{\textbf{REMARQUES} : Il faudra impérativement noter que les formules ici mentionnées, qui de toute évidence correspondent respectivement au processus de mise à jour des coefficients du filtre dans le cadre du \textbf{BNLMS} et du \textbf{BPNLMS}, ne sont que formelles.} En effet, au sens mathématique strict elles ne seront pas valables au vu des dimensions des termes (pour s'en convaincre, il faut noter qu'après formatage des résultats, $ R_{ss}(k) $ est de taille 	$ p\times 1 $ ,on ne prend que ses $ p $ derniers termes, donc on ne peut pas l'additionner à $ \beta $ qui est un scalaire mais aussi $ G_{k} $ étant une matrice de taille $ p\times p $, on aura aussi que $ G_{k}R_{ss}(k) $ est de taille $ p\times 1 $ et donc même conclusion). \emph{Cette notation formelle signifie juste que, pour chaque itération, on calculer le vecteur de taille $ p $ du numérateur et l'autre du dénominateur et le terme $ w_{k}(i) $ correspondra au résultat obtenu en appliquant la formule mais ayant considéré uniquement les termes numéro $ i $ de chaque vecteur présent (au numérateur et au dénominateur)}.Nous y revenons plus clairement lors de l'élaboration de l'algorithme.
+\section{Conclusion partielle}
+Ce chapitre a abordé le processus de filtrage numérique de manière à converger vers un filtre bien adapté à l'annulation d'écho sonore. L'algorithme choisi et adapté pour cet effet est le \emph{PNLMS++} qui est comme une synthèse des avantages de divers algorithmes conçus pour la cause précisée.
+Néanmoins, envisager une implantation plus optimale sur les processeurs de traitement du signal, nous permet de remarquer l'utilité d'introduire la transformée en nombres de Fermat, qui permet de réduire la consommation en ressources qui serait inutilement énorme en cas d'un traitement numérique classique.
+Le traitement dans le domaine de Fermat, allié à une manipulation des séquences par bloc de données, permet de réduire de manière assez sensible la complexité de calcul des algorithmes mis au point. L'introduction de la transformation en nombres entiers, nous est d'une importance capitale car c'est sur base d'elle que seront écrits, en langage de programmation dédié, nos algorithmes, si on veut les embarquer.

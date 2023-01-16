@@ -1,0 +1,11 @@
+fs=44100;
+noc=1;
+nob=16;
+recObj=audiorecorder(fs,nob,noc);
+record(recObj);
+pause(1);
+stop(recObj);
+play(recObj);
+myrecording=getaudiodata(recObj);
+plot(myrecording);
+sound(myrecording)

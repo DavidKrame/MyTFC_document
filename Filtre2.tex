@@ -1,0 +1,117 @@
+\begin{verbatim}
+1   -	%Récupération du son
+2   -	
+3   -	%Définition de la période d'échantillonnage en respectant Shannon
+4   -	fs=44100;
+5   -	%Définition du nombre de voies d'enregistrement
+6   -	noc=1;
+7   -	%Définition du nombre de bits
+8   -	nob=16;
+9   -	%Enregistrement du signal audio
+10  -	recObj=audiorecorder(fs,nob,noc);
+11  -	record(recObj);
+12  -	pause(40);
+13  -	stop(recObj);
+14  -	%Lancement du signal enregistré
+15  -	play(recObj);
+16  -	%Formatage du signal enregistré sous forme vectoriel
+17  -	myrecordings=getaudiodata(recObj);
+18  -	%Représentation du signal enregistré
+19  -	plot(myrecordings);
+20  -	%Fin de la partie prise de son
+21  -	
+22  -	%Début de l'algorithme et lancement du chronométrage
+23  -	tic;
+24  -	%Initialisations et déclaration des constantes
+25  -	
+26  -	w=zeros(1,64);
+27  -	zero=zeros(1,64);
+28  -	%Complément de W par des zeros pour atteindre la longueur réquise
+29  -	wk=[w,zero]';
+30  -	%Déclaration des constantes "beta", "delta", "rho" et "mu".
+31  -	b=100;
+32  -	D=(1/64);
+33  -	rho=(10^(-2));
+34  -	mu=(0.8);
+35  -	%Initialisation des W pour BNLMS puis BPNLMS.
+36  -	w1=(ones(1,64))';
+37  -	w2=(ones(1,64))';
+38  -	%Initialisation des vecteurs utiles au calcul de Gk.
+39  -	gam=zeros(1,64);
+40  -	gk=zeros(1,64);
+41  -	
+42  -	%Début du traitement
+43  -	for i=1:20850
+44  -	    %Sélection particulier du premier bloc d'échantillons
+45  -	    if i==1
+46  -	        sign=(myrecordings(1:128))';
+47  -	        sign2=(myrecordings(128:-1:1));
+48  -	    %Sélection général de tous les blocs    
+49  -	    elseif i>=2
+50  -	        sign=(myrecordings(65+64*(i-2):192+64*(i-2)))';
+51  -	        sign2=(myrecordings((192+64*(i-2)):-1:(65+64*(i-2))));
+52  -	    end
+53  -	    
+54  -	    %Transformation du signal d'entrée et du vecteur W
+55  -	    SIG=fft(sign);
+56  -	    W=(fft(wk))';
+57  -	    %Calcul du produit terme à terme des deux vecteurs
+58  -	    Y=SIG.*W;
+59  -	    %Transformation inverse pour retrouver le produit de convolution
+60  -	    YW=ifft(Y);
+61  -	    %Sélection des termes utiles recherchés
+62  -	    yw=YW(65:128);
+63  -	    %Calcul du vecteur d'erreurs
+64  -	    err=(myrecordings(1+64*(i-1):64*i))'-(yw);
+65  -	    %Complément du vecteur par des zeros puis transformation
+66  -	    ERR=[err,zero];
+67  -	    errF=fft(ERR);
+68  -	    %Transformation du vecteur image
+69  -	    SIG2=fft(sign2);
+70  -	    %Réalisation de l'étape 3°) points 15, 16 et 17 de l'algorithme
+71  -	    ERsign=(errF)'.*(SIG2);
+72  -	    erSIGN=ifft(ERsign);
+73  -	    es=erSIGN(65:128);
+74  -	    %Réalisation de l'étape 3°) points 18 et 19 (autocorrélation)
+75  -	    RSS=SIG2.*(SIG)';
+76  -	    RSs=ifft(RSS);
+77  -	    Rss=RSs(65:128);
+78  -	    
+79  -	    %Calcul d'un paramètre utile pour trouver le vecteur Gk
+80  -	    Vk=max([D,abs(w)]);
+81  -	    %Calcul du vecteur Gk
+82  -	    for k=1:64
+83  -	        gam(k)=max(((rho)*Vk),(abs(w(k))));
+84  -	    end
+85  -	    for M=1:64
+86  -	        gk(M)=((gam(M))/(mean(gam)));
+87  -	    end
+88  -	    Gk=diag(gk);
+89  -	    %Réalisation de l'étape 3°) point 21
+90  -	    GkRss=Gk*(Rss);
+91  -	    
+92  -	    GkEsi2=Gk*es;
+93  -	    
+94  -	    %Réinitialisation des coefficients du filtre
+95  -	    
+96  -	    for j=1:64
+97  -	        %Algorithme BPNLMS
+98  -	        w1(j)=(w(j)+((mu*GkEsi2(j))/(GkRss(j)+b)));
+99  -	        %Algorithme BNLMS
+100 -	        w2(j)=(w(j)+((mu*es(j))/(Rss(j)+b)));
+101 -	        
+102 -	        %Réinitialisation des coefficients du filtre par BPNLMS++
+103 -	        %Coefficients impairs par BPNLMS
+104 -	        if mod(j,2)==1
+105 -	            w(j)=w1(j);
+106 -	        %Coefficients pairs par BNLMS    
+107 -	        elseif mod(j,2)==0
+108 -	            w(j)=w2(j);
+109 -	        end
+110 -	    end
+111 -	end
+112	-	w=((ones(1,64))*(13.5)-(w))/(13.5);
+113 -	%Fin du chronométrage
+114 -	toc;
+\end{verbatim}
+\textbf{Revenir dans le texte en cliquant \ref{Bloc}}.

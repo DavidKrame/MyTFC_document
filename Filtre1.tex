@@ -1,0 +1,88 @@
+\begin{verbatim}
+1  -	%Récupération du son
+2  -	
+3  -	%Définition de la période d'échantillonnage
+4  -	fs=44100;
+5  -	%Définition du nombre de voies d'enregistrement
+6  -	noc=1;
+7  -	%Définition du nombre de bits
+8  -	nob=16;
+9  -	%Enregistrement du signal audio
+10 -	recObj=audiorecorder(fs,nob,noc);
+11 -	record(recObj);
+12 -	pause(40);
+13 -	stop(recObj);
+14 -	%Lancement du signal enregistré
+15 -	play(recObj);
+16 -	%Formatage du signal enregistré sous forme vectoriel
+17 -	myrecordings=getaudiodata(recObj);
+18 -	%Représentation du signal enregistré
+19 -	plot(myrecordings);
+20 -	%Fin de la partie prise de son
+21 -	
+22 -	%Début de l'algorithme et lancement du chronométrage
+23 -	tic;
+24 -	%Initialisations et déclaration des constantes
+25 -	
+26 -	yk=ones(1,64);
+27 -	%Déclaration des constantes "beta", "delta", "rho" et "mu".
+28 -	b=100;
+29 -	D=(1/64);
+30 -	rho=0.01;
+31 -	mu=0.8;
+32 -	%Initialisation des W pour NLMS puis PNLMS.
+33 -	w1=(ones(1,64))';
+34 -	w2=(ones(1,64))';
+35 -	%Initialisation des vecteurs utiles au calcul de Gk.
+36 -	gam=zeros(1,64);
+37 -	gk=zeros(1,64);
+38 -	%Initialisation des vecteurs d'erreur et de W.
+39 -	err=(1:64000);
+40 -	w=zeros(1:64);
+41 -	
+42 -	%Début du traitement
+43 -	for i=1:20850
+44 -	    %Récupération du vecteur d'entrée à chaque étape i
+45 -	    sign=(myrecordings((64+(i-1)):-1:(1+(i-1))))';
+46 -	    
+47 -	    %Calcul d'un paramètre utile pour trouver le vecteur Gk
+48 -	    Vk=max([D,abs(w)]);
+49 -	    %Calcul du vecteur Gk
+50 -	    for k=1:64
+51 -	        gam(k)=max(((rho)*Vk),(abs(w(k))));
+52 -	    end
+53 -	    for M=1:64
+54 -	        gk(M)=((gam(M))/(mean(gam)));
+55 -	    end
+56 -	    Gk=1*diag(gk);
+57 -	    %Calcul des éléments du vecteur d'erreur en gérant le début
+58 -	    for s=1+(i-1):64+(i-1)
+59 -	        sign2=(myrecordings((64+(s-1)):-1:(1+(s-1))))';
+60 -	        yk(s) = (sign2)*w';
+61 -	        err(s+63)=((yk(s)-myrecordings(64+(s-1))));
+62 -	    end
+63 -	    
+64 -	    %Début du processus de réinitialisation du filtre
+65 -	    
+66 -	    %Algorithme PNLMS (Calcul du vecteur W1)
+67 -	        w1=(w'+(mu*Gk*((sign)')*err(i+63))/(sign*Gk*(sign)'+b)));
+68 -	    %Algorithme NLMS (Calcul du vecteur W2)    
+69 -	        w2=(w'+((mu*((sign)')*err(i+63))/(((sign)*((sign)')+b))));
+70 -	        
+71 -	        
+72 -	    %Réinitialisation des coefficients du filtre par PNLMS++
+73 -	    
+74 -	    for k=1:64
+75 -	        %Coefficients impairs par PNLMS
+76 -	        if mod(k,2)==1
+77 -	          w(k)=w1(k);
+78 -	        %Coefficients pairs par NLMS
+79 -	        elseif mod(k,2)==0
+80 -	            w(k)=w2(k);
+81 -	        end
+82 -	    end
+83 -	end
+84 -	%Fin du chronométrage
+85 -	toc;
+\end{verbatim}
+\textbf{Revenir dans le texte en cliquant \ref{Brut}}.

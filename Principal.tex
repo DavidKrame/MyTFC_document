@@ -1,0 +1,83 @@
+\documentclass[12pt,twoside]{book}
+\usepackage[T1]{fontenc}
+\usepackage{color}
+\usepackage{amsmath}
+\usepackage{amssymb}
+\usepackage[toc,page,title,titletoc,header]{appendix}
+\usepackage{babel}
+\usepackage{times}
+\usepackage{subcaption}
+%\usepackage{kpfonts}
+\usepackage{setspace}
+\setstretch{1.5}
+\usepackage{fancyhdr}
+\usepackage[clearempty]{titlesec}
+\usepackage{caption}
+\usepackage{verbatim}
+\usepackage{lastpage}
+\usepackage{graphicx}
+\usepackage[margin=25mm]{geometry}
+\newtheorem{theorem}{Théorème}
+\newtheorem{algorithm}{Algorithme}
+
+\usepackage[colorlinks=true,breaklinks=true,linkcolor=blue]{hyperref}
+
+\pagestyle{fancy}
+\renewcommand{\headrulewidth}{0.4pt}
+\renewcommand{\footrulewidth}{0.4pt}
+\fancyhead[LE]{\leftmark}
+\fancyhead[RO]{\rightmark}
+\fancyhead[RE]{}
+\fancyhead[LO]{}
+\fancyfoot[C]{\thepage\hspace{1pt} sur \pageref{LastPage}}
+\begin{document}
+%\maketitle
+\begin{titlepage}
+\input{PageGarde}
+\end{titlepage}
+
+\renewcommand{\bibname}{Bibliographie}
+\renewcommand{\chaptername}{Chapitre}
+\renewcommand{\appendixtocname}{ANNEXES}
+\renewcommand{\appendixpagename}{ANNEXES}
+\renewcommand{\contentsname}{Table des matières}
+\renewcommand{\listfigurename}{Liste des figures}
+\frontmatter
+\chapter*{DÉDICACES}\addcontentsline{toc}{chapter}{DÉDICACES}
+\input{Dedicaces}
+\chapter*{REMERCIEMENTS}\addcontentsline{toc}{chapter}{REMERCIEMENTS}
+\input{Remerciements}
+\chapter*{RÉSUMÉ}\addcontentsline{toc}{chapter}{RÉSUMÉ}
+\input{Resume}
+\chapter*{SIGLES ET ABRÉVIATIONS}\addcontentsline{toc}{chapter}{SIGLES ET ABRÉVIATIONS}
+\input{Sigles}
+\tableofcontents
+\listoffigures
+
+\mainmatter
+
+\graphicspath{{./Images/}}
+
+\chapter*{INTRODUCTION GÉNÉRALE}\addcontentsline{toc}{chapter}{INTRODUCTION GÉNÉRALE}
+\input{Introduction}
+\chapter{GÉNÉRALITÉS SUR LE TRAITEMENT DU SIGNAL}
+\input{ChapterOne}
+\chapter{ÉTUDE THÉORIQUE DU FILTRAGE DU SON}
+\input{ChapterTwo}
+\chapter{CONCEPTION DU FILTRE MIXTE ADAPTÉ}
+\input{ChapterTree}
+\chapter*{CONCLUSION GÉNÉRALE}\addcontentsline{toc}{chapter}{CONCLUSION GÉNÉRALE}
+\input{Conclusion}
+\backmatter
+%\appendix
+\bibliographystyle{unsrt}
+\bibliography{Bibliographie}
+\backmatter
+%\appendix
+\begin{appendices}
+\section{Algorithme de traitement brut}\label{Anne1}
+\input{Filtre1}
+\section{Algorithme de traitement par blocs}\label{Anne2}
+\input{Filtre2}
+\end{appendices}
+\end{document}
